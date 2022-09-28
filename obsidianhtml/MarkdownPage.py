@@ -27,7 +27,7 @@ class MarkdownPage:
     file_tree = None        # Tree of files that are found in the root folder
 
     def __init__(self, pb, fo:'OH_File', input_type, file_tree):
-        self.pb = pb
+        self.pb = pb  # PicknickBasket
         self.fo = fo
         self.file_tree = file_tree
         
@@ -183,7 +183,7 @@ class MarkdownPage:
                 current_is_list_line = False
             elif clean_line[0] == '-':
                 current_is_list_line = True
-            if current_is_list_line and (prev_is_list_line == False):
+            if current_is_list_line and (prev_is_list_line == False):  # insert \n before start of lists
                 buffer += '\n'
             buffer += '\n' + line
             prev_is_list_line = current_is_list_line
