@@ -48,7 +48,7 @@ class MarkdownPage:
         self.SanitizeFrontmatter()
 
     def SanitizeFrontmatter(self):
-        # imitate obsidian shenannigans
+        # imitate obsidian shenanigans
         if 'tags' in self.metadata.keys():
             tags = self.metadata['tags']
             if isinstance(tags, str):

@@ -63,7 +63,3 @@ class PicknickBasket:
     def EnsureTreeObj(self):
         if self.treeobj is None:
             self.treeobj = CreateIndexFromDirStructure(self, self.paths['html_output_folder'])
-
-
-
-
