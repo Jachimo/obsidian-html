@@ -1,0 +1,5 @@
+obsidian_folder_path_str: 'ci/test_vault/'
+obsidian_entrypoint_path_str: 'ci/test_vault/entrypoint.md'
+
+toggles:
+  strict_line_breaks: True
