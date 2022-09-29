@@ -24,9 +24,13 @@ class PicknickBasket:
         self.search = SearchHead()
 
         # State should be updated whenever we start a new type of operation.
-        # When doing an operation by looping through notes, set loop_type to 'note', for links within a note 'note_link', if not in a loop-type operation, set to None.
-        # This information is used to provide extra information to the user when an error does occur, primarily which note causes the error.
-        # In the beginning not every action will update the state, call self.reset_state to unset the state so that we are not reporting stale information.
+        #
+        # When doing an operation by looping through notes, set loop_type to 'note', for links within a note
+        # 'note_link', if not in a loop-type operation, set to None.
+        #
+        # This information is used to provide extra information to the user when an error does occur, primarily which
+        # note causes the error. In the beginning not every action will update the state, call self.reset_state to
+        # unset the state so that we are not reporting stale information.
         self.state = {}
         self.reset_state()
 

@@ -10,7 +10,7 @@ from .lib import OpenIncludedFile
 
 class Config:
     config = None
-    pb = None
+    pb = None  # PicknickBasket
 
     def __init__(self, pb, input_yml_path_str=False):
         self.pb = pb
