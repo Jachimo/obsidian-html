@@ -1,8 +1,9 @@
-from .NetworkTree import NetworkTree
-from .ConfigManager import CheckConfigRecurse, MergeDictRecurse, Config
-from .Search import SearchHead
-from .CreateIndexFromDirStructure import CreateIndexFromDirStructure
 import inspect
+
+from .ConfigManager import Config
+from .CreateIndexFromDirStructure import CreateIndexFromDirStructure
+from .NetworkTree import NetworkTree
+from .Search import SearchHead
 
 
 class PicknickBasket:
@@ -38,7 +39,7 @@ class PicknickBasket:
     def init_state(self, **kwargs):
         self.reset_state()
         self.state['subroutine'] = inspect.stack()[1][3]    # this can be overwritten by caller by setting kwarg subroutine='<value>'
-        for key in kwargs.keys():
+        for key in kwargs:
             self.state[key] = kwargs[key]
 
     def loadConfig(self, input_yml_path_str=False):
@@ -57,7 +58,6 @@ class PicknickBasket:
     def add_file(self, rel_path, obj):
         if self.gc('toggles/force_filename_to_lowercase', cached=True):
             rel_path = rel_path.lower()
-
         self.files[rel_path] = obj
 
     def EnsureTreeObj(self):

@@ -1,13 +1,15 @@
 from __future__ import annotations
-import re                   # regex string finding/replacing
-import yaml
-from pathlib import Path    # 
-import frontmatter          # remove yaml frontmatter from md files
-import urllib.parse         # convert link characters like %
-import warnings
-from .lib import DuplicateFileNameInRoot, GetObsidianFilePath, slugify, MalformedTags, OpenIncludedFile
-from .HeaderTree import PrintHeaderTree, ConvertMarkdownToHeaderTree, GetReferencedBlock, GetSubHeaderTree
+
+import re  # regex string finding/replacing
+import urllib.parse  # convert link characters like %
+from pathlib import Path
+
+import frontmatter  # remove yaml frontmatter from md files
+
 from .FileFinder import FindFile
+from .HeaderTree import PrintHeaderTree, ConvertMarkdownToHeaderTree, GetReferencedBlock, GetSubHeaderTree
+from .lib import GetObsidianFilePath, slugify, MalformedTags, OpenIncludedFile
+
 
 class MarkdownPage:
     page = None             # Pure markdown code read from src file
@@ -16,8 +18,8 @@ class MarkdownPage:
     codelines = None        # Used to safely store `codeline` content
     links = None            # Used to recurse to any page linked to by this page
 
-    src_path  = None        # Path() object of src file
-    rel_src_path  = None    # Path() object relative to given markdown root folder (src_folder_path)
+    src_path = None        # Path() object of src file
+    rel_src_path = None    # Path() object relative to given markdown root folder (src_folder_path)
     src_folder_path = None  # Path() object of given obsidian root folder
     dst_folder_path = None  # Path() object of given markdown output folder
     dst_path = None         # Path() object of destination file
@@ -26,11 +28,11 @@ class MarkdownPage:
 
     file_tree = None        # Tree of files that are found in the root folder
 
-    def __init__(self, pb, fo:'OH_File', input_type, file_tree):
+    def __init__(self, pb, fo: 'OH_File', input_type, file_tree):
         self.pb = pb  # PicknickBasket
         self.fo = fo
         self.file_tree = file_tree
-        
+
         # remove?
         self.src_path = fo.path[input_type]['file_absolute_path']
         self.src_folder_path = fo.path[input_type]['folder_path']
@@ -40,7 +42,7 @@ class MarkdownPage:
         self.links = []
         self.codeblocks = []
         self.codelines = []
-        
+
         # Load contents of entrypoint and strip frontmatter yaml.
         with open(self.src_path, encoding="utf-8") as f:
             self.metadata, self.page = frontmatter.parse(f.read())
@@ -62,27 +64,29 @@ class MarkdownPage:
                 self.metadata['tags'] = []
 
     def StripCodeSections(self):
-        """(Temporarily) Remove codeblocks/-lines so that they are not altered in all the conversions. Placeholders are inserted."""
+        """(Temporarily) Remove codeblocks/-lines so that they are not altered in all the conversions.
+        Placeholders are inserted.
+        """
         self.codeblocks = re.findall("^```([\s\S]*?)```[\s]*?$", self.page, re.MULTILINE)
         for i, match in enumerate(self.codeblocks):
             self.page = self.page.replace("```"+match+"```", f'%%%codeblock-placeholder-{i}%%%')
-            
+
         self.codelines = re.findall("`(.*?)`", self.page)
         for i, match in enumerate(self.codelines):
             self.page = self.page.replace("`"+match+"`", f'%%%codeline-placeholder-{i}%%%')
-           
+
     def RestoreCodeSections(self):
         """Undo the action of StripCodeSections."""
         for i, value in enumerate(self.codeblocks):
             self.page = self.page.replace(f'%%%codeblock-placeholder-{i}%%%', f"```{value}```\n")
         for i, value in enumerate(self.codelines):
-            self.page = self.page.replace(f'%%%codeline-placeholder-{i}%%%', f"`{value}`")  
+            self.page = self.page.replace(f'%%%codeline-placeholder-{i}%%%', f"`{value}`")
 
     def add_tag(self, tag):
         if 'tags' not in self.metadata:
             self.metadata['tags'] = []
         self.metadata['tags'].append(tag)
-    
+
     def AddToTagtree(self, tagtree, url=''):
         if 'tags' not in self.metadata:
             return
@@ -91,8 +95,9 @@ class MarkdownPage:
             url = self.fo.get_link('html')
 
         for tag in self.metadata['tags']:
-            if (not isinstance(tag, str)):
-                raise MalformedTags(f"Tag {tag} in frontmatter of \"{self.src_path}\" is of type {type(tag)}, but should be a string. (Items under 'tags:' can not include a ':' on its line).")
+            if not isinstance(tag, str):
+                raise MalformedTags(f'Tag {tag} in frontmatter of "{self.src_path}" is of type {type(tag)}, '
+                                    'but should be a string. (Items under "tags:" can not include a ":").')
 
         for tag in self.metadata['tags']:
             ctagtree = tagtree
@@ -143,13 +148,18 @@ class MarkdownPage:
     def GetEmbeddable(self, file_name, relative_path_corrected, suffix):
         return f'<embed src="{relative_path_corrected}" width="90%" height="700px">'
 
-    def ConvertObsidianPageToMarkdownPage(self, origin:'OH_file'=None, include_depth=0, includer_page_depth=None, remove_block_references=True):
-        """Full subroutine converting the Obsidian Code to proper markdown. Linked files are copied over to the destination folder."""
+    def ConvertObsidianPageToMarkdownPage(self, origin: 'OH_file' = None,
+                                          include_depth=0,
+                                          includer_page_depth=None,
+                                          remove_block_references=True):
+        """Full subroutine converting the Obsidian Code to proper markdown.
+        Linked files are copied over to the destination folder.
+        """
 
         # -- Set origin (calling page), this will always be self.fo unless origin is passed in
         if origin is None:
-            origin = self.fo 
-        
+            origin = self.fo
+
         # -- Get page depth
         page_folder_depth = self.fo.metadata['depth']
 
@@ -160,12 +170,12 @@ class MarkdownPage:
                 page_folder_depth = 0
 
         # -- [??] Remove spaces in front of codeblock open and close lines
-        # Obisidian allows spaces in front, markdown does not
+        # Obsidian allows spaces in front, markdown does not
         self.page = re.sub(r'(^ *```)', '```', self.page, flags=re.MULTILINE)
 
         # -- [1] Replace code blocks with placeholders so they aren't altered
         # They will be restored at the end
-        self.StripCodeSections() 
+        self.StripCodeSections()
 
         # -- [??] Insert extra newline between two centered mathjax blocks
         self.page = re.sub(r'\$\$\ *\n\$\$', '$$ \n\n$$', self.page, flags=re.MULTILINE)
@@ -212,13 +222,15 @@ class MarkdownPage:
 
             # Find file
             rel_path_str, lo = FindFile(self.pb.files, clean_link, self.pb)
-            if rel_path_str == False:
+            if not rel_path_str:
                 if self.pb.gc('toggles/verbose_printout', cached=True):
-                    print(f"\t\tImage/file with obsidian link of '{clean_link}' (original {link}) will not be copied over in this step.")
+                    print(f"\t\tImage/file with obsidian link of '{clean_link}' "
+                          f"(original {link}) will not be copied in this step.")
                     if '://' in link:
                         print("\t\t\t<continued> The link seems to be external (contains ://)")
                     else:
-                        print(f"\t\t\t<continued> The link was not found in the file tree. Clean links in the file tree are: {', '.join(self.file_tree.keys())}")
+                        print("\t\t\t<continued> The link was not found in the file tree. Clean links are: "
+                              f"{', '.join(self.file_tree.keys())}")
                 continue
 
             # Get shorthand info
@@ -249,7 +261,8 @@ class MarkdownPage:
         # And while we are busy, change the path to point to the full relative path
         proper_links = re.findall(r'(?<=\]\()[^\s\]]+(?=\))', self.page)
         for l in proper_links:
-            # There is currently no way to match links containing parentheses, AND not matching the last ) in a link like ([test](link))
+            # There is currently no way to match links containing parentheses,
+            #  AND not matching the last ) in a link like ([test](link))
             if l.endswith(')'):
                 l = l[:-1]
 
@@ -260,7 +273,7 @@ class MarkdownPage:
                 res = GetObsidianFilePath(link, self.file_tree, self.pb)
                 rel_path_str = res['rtr_path_str']
                 lo = res['fo']
-                if lo == False:
+                if not lo:
                     continue
 
                 # Determine if file is markdown
@@ -277,7 +290,7 @@ class MarkdownPage:
                 safe_link = re.escape(']('+l+')')
                 self.page = re.sub(f"(?<![\[\(])({safe_link})", new_link, self.page)
 
-                if isMd == False:
+                if not isMd:
                     # Copy file over to new location
                     lo.copy_file('ntm')
 
@@ -307,13 +320,13 @@ class MarkdownPage:
             if hashpart != '' and filename == '':
                 is_anchor = True
 
-            if is_anchor == False:
+            if not is_anchor:
                 # find link in filetree
                 res = GetObsidianFilePath(l, self.file_tree, self.pb)
                 rel_path_str = res['rtr_path_str']
                 fo = res['fo']
 
-                if rel_path_str == False:
+                if not rel_path_str:
                     link = '/not_created.md'
                 else:
                     link = fo.get_link('markdown', origin=origin)
@@ -330,7 +343,6 @@ class MarkdownPage:
 
             # Replace Obsidian link with proper markdown link
             self.page = self.page.replace('[['+l+']]', f"[{alias}]({newlink})")
-
 
         # -- [7] Fix newline issue by adding three spaces before any newline
         if not self.pb.config.config['toggles']['strict_line_breaks']:
@@ -357,19 +369,19 @@ class MarkdownPage:
 
             safe_str = re.escape(l)
             self.page = re.sub(safe_str, new_md_str, self.page)
-            
+
         # -- [10] Add code inclusions
         for l in re.findall(r'(\<inclusion href="[^"]*" />)', self.page, re.MULTILINE):
             link = l.replace('<inclusion href="', '').replace('" />', '')
 
             result = GetObsidianFilePath(link, self.file_tree, self.pb)
             file_object = result['fo']
-            header =  result['header']
+            header = result['header']
 
-            if file_object == False:
+            if not file_object:
                 self.page = self.page.replace(l, f"> **obsidian-html error:** Could not find page {link}.")
                 continue
-            
+
             self.links.append(file_object)
 
             if include_depth > 3:
@@ -379,15 +391,19 @@ class MarkdownPage:
 
             incl_page_path = file_object.path['note']['file_absolute_path']
             if not file_object.is_valid_note('note'):
-                self.page = self.page.replace(l, f"> **obsidian-html error:** Error including file or not a markdown file {link}.")
+                self.page = self.page.replace(l, "> **obsidian-html error:** "
+                                                 f"Error including file or not a markdown file {link}.")
                 continue
-            
+
             # Get code
             included_page = MarkdownPage(self.pb, file_object, 'note', self.file_tree)
-            included_page.ConvertObsidianPageToMarkdownPage(origin=self.fo, include_depth=include_depth + 1, includer_page_depth=page_folder_depth, remove_block_references=False)
+            included_page.ConvertObsidianPageToMarkdownPage(origin=self.fo,
+                                                            include_depth=include_depth + 1,
+                                                            includer_page_depth=page_folder_depth,
+                                                            remove_block_references=False)
 
             # Get subsection of code if header is present
-            if header != '': 
+            if header != '':
                 # Prepare document
                 included_page.StripCodeSections()
 
@@ -404,16 +420,15 @@ class MarkdownPage:
                     # header_id = slugify(header)
                     # header_dict, root_element = ConvertMarkdownToHeaderTree(included_page.page)
                     # included_page.page = PrintHeaderTree(header_dict[header_id])
-                    
+
                 # Wrap up
                 included_page.RestoreCodeSections()
-            
-            self.page = self.page.replace(l, '\n' + included_page.page + '\n')
 
+            self.page = self.page.replace(l, '\n' + included_page.page + '\n')
 
         # -- [#296] Remove block references 
         if remove_block_references:
-            self.page  = re.sub(r'(?<=\s)(\^\S*?)(?=$|\n)', '', self.page)
+            self.page = re.sub(r'(?<=\s)(\^\S*?)(?=$|\n)', '', self.page)
 
         # -- [1] Restore codeblocks/-lines
         self.RestoreCodeSections()

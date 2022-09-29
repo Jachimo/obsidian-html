@@ -1,12 +1,12 @@
+import json
+from functools import cache
+from pathlib import Path
+
+import yaml
+
 from . import print_global_help_and_exit
 from .lib import OpenIncludedFile
 
-from pathlib import Path 
-import json
-
-import inspect
-import yaml
-from functools import cache
 
 class Config:
     config = None
@@ -171,9 +171,7 @@ class Config:
                             grapher['contents'] = f.read()
                     except:
                         raise Exception(f"Could not open user provided grapher file with path {temp_path}")
-            
                 self.pb.graphers.append(grapher)
-
 
     def LoadEmbeddedNoteConfig(self, data_json_path):
         self.plugin_settings['embedded_note_titles'] = {}
@@ -182,8 +180,6 @@ class Config:
                 self.plugin_settings['embedded_note_titles'] = json.loads(f.read())
             return True
         return False
-
-
 
 def MergeDictRecurse(base_dict, update_dict, path=''):
     helptext = '\n\nTip: Run obsidianhtml -gc to see all configurable keys and their default values.\n'
@@ -219,14 +215,9 @@ def MergeDictRecurse(base_dict, update_dict, path=''):
 
 def CheckConfigRecurse(config, path='', match_str='<REQUIRED_INPUT>'):
     helptext = '\n\nTip: Run obsidianhtml -gc to see all configurable keys and their default values.\n'
-
     for k, v in config.items():
         key_path = '/'.join(x for x in (path, k) if x !='')
-        
         if isinstance(v, dict):
             CheckConfigRecurse(config[k], path=key_path)
-
         if v == match_str:
             raise Exception(f'\n\tKey "{key_path}" is required. {helptext}')
-
- 
